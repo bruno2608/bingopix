@@ -1,8 +1,0 @@
-{
-  "defaultBingoCards": 100,
-  "defaultCardValue": 1.00,
-  "bingoGridSize": 5,
-  "bingoMaxNumber": 75,
-  "bingoMinNumber": 1,
-  "maxHistoryGames": 50
-}

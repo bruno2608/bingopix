@@ -258,6 +258,19 @@ npm run dev
 
 ## Mudanças Recentes
 
+**27/10/2025 - Bot em PRODUÇÃO 🚀:**
+- ✅ **Credenciais de PRODUÇÃO do Mercado Pago configuradas**
+- ✅ **Bot rodando em modo produção (BingoPix#0870)**
+- ✅ Dependência libuuid instalada para Canvas
+- ✅ 10 comandos slash registrados e operacionais
+- ✅ Servidor webhook rodando na porta 5000
+- ✅ Webhook URL dinâmico configurado automaticamente
+- ✅ Logs atualizados para indicar modo PRODUÇÃO
+- 📋 **Próximos passos recomendados:**
+  1. Registrar webhook URL no dashboard do Mercado Pago
+  2. Realizar teste end-to-end de pagamento PIX
+  3. Monitorar logs após testes de produção
+
 **27/10/2025 - Correção do Erro 401 Mercado Pago:**
 - ✅ Melhorias no serviço MercadoPago com logs detalhados de erro
 - ✅ Configuração automática da WEBHOOK_URL usando REPLIT_DOMAINS
@@ -265,9 +278,6 @@ npm run dev
 - ✅ Instalação da dependência libuuid para Canvas
 - ✅ Criados scripts de teste (test-pix.js, verify-credentials.js)
 - ✅ Documentação completa de solução (SOLUCAO_ERRO_401.md)
-- ⚠️ **PENDENTE**: Atualização do Access Token de TESTE do Mercado Pago
-  - Erro identificado: Token atual é de produção não-ativada
-  - Solução: Obter token da seção "TESTES" no dashboard Mercado Pago
 
 **27/10/2025 - Atualização 2:**
 - ✅ **Integração completa com Mercado Pago implementada**
@@ -287,14 +297,16 @@ npm run dev
 - ✅ Detecção automática de vencedores
 - ✅ Estrutura de webhook PIX preparada
 
-## Problemas Conhecidos
+## Modo de Operação
 
-### ❌ Erro 401 - Mercado Pago (EM RESOLUÇÃO)
+**Status:** 🚀 **PRODUÇÃO ATIVA**
 
-**Problema:** "Unauthorized use of live credentials"
+O bot está configurado com credenciais reais do Mercado Pago e Discord. Todos os pagamentos PIX processados serão transações reais.
 
-**Causa:** O Access Token fornecido é de PRODUÇÃO não-ativada, não de TESTE.
+### Webhook URL Atual
 
-**Solução:** Veja o arquivo `SOLUCAO_ERRO_401.md` para instruções completas sobre como obter o token correto.
+```
+https://e008534e-f3ea-4725-a0f3-4a58f33c738c-00-ptntfwdyfavg.spock.replit.dev/webhook/pix/notification
+```
 
-**Status:** Aguardando atualização do token pelo usuário.
+**Importante:** Registre esta URL no dashboard do Mercado Pago para receber notificações automáticas de pagamento.
