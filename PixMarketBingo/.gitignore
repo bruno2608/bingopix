@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+*.log
+.cache/
+.local/
+data/bingos.json
+data/history.json
+attached_assets/

@@ -1,0 +1,28 @@
+{
+  "name": "discord-bingo-bot",
+  "version": "1.0.0",
+  "description": "Bot completo de bingo para Discord com gerenciamento de cartelas, sorteio e integração PIX",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js",
+    "dev": "node src/index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "bingo",
+    "games"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/rest": "^2.6.0",
+    "axios": "^1.12.2",
+    "canvas": "^3.2.0",
+    "discord-api-types": "^0.38.31",
+    "discord.js": "^14.24.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
