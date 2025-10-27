@@ -10,7 +10,7 @@ class MercadoPagoService {
     }
 
     console.log('🔑 Mercado Pago inicializado com sucesso');
-    console.log('💡 Nota: Certifique-se de usar credenciais de TESTE para desenvolvimento');
+    console.log('🚀 Modo: PRODUÇÃO - Usando credenciais reais do Mercado Pago');
   }
 
   async createPixPayment({ amount, description, payerEmail, metadata }) {
