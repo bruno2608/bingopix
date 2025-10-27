@@ -419,6 +419,18 @@
         "totalPaid": 0.03,
         "addedAt": "2025-10-27T03:54:47.343Z",
         "addedBy": "291974769858052096"
+      },
+      {
+        "nome": "Bruno Alves",
+        "userId": "291974769858052096",
+        "cards": [
+          2
+        ],
+        "totalPaid": 0.01,
+        "addedAt": "2025-10-27T14:50:28.304Z",
+        "addedBy": "compra_automatica",
+        "paymentId": 130876511127,
+        "paymentMethod": "pix"
       }
     ],
     "drawnNumbers": [],
