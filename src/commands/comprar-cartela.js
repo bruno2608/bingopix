@@ -7,7 +7,8 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  AttachmentBuilder
 } = require('discord.js');
 const { getBingos, saveBingos } = require('../utils/dataManager');
 const mercadoPago = require('../services/mercadoPago');
@@ -205,7 +206,7 @@ async function handlePayButton(interaction, purchaseId) {
     });
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   try {
     const bingos = getBingos();
@@ -230,6 +231,9 @@ async function handlePayButton(interaction, purchaseId) {
       qrCodeBase64: payment.qrCodeBase64
     });
 
+    const qrCodeBuffer = Buffer.from(payment.qrCodeBase64, 'base64');
+    const attachment = new AttachmentBuilder(qrCodeBuffer, { name: 'qrcode.png' });
+
     const embed = new EmbedBuilder()
       .setColor('#00FF00')
       .setTitle('💳 Pagamento PIX Gerado')
@@ -240,7 +244,7 @@ async function handlePayButton(interaction, purchaseId) {
         { name: '\u200b', value: '\u200b', inline: true },
         { name: '📋 Código PIX (Copia e Cola)', value: `\`\`\`${payment.qrCode}\`\`\``, inline: false }
       )
-      .setImage(`data:image/png;base64,${payment.qrCodeBase64}`)
+      .setImage('attachment://qrcode.png')
       .setFooter({ text: `ID do Pagamento: ${payment.id}` })
       .setTimestamp();
 
@@ -255,7 +259,7 @@ async function handlePayButton(interaction, purchaseId) {
       content: '✅ QR Code PIX gerado com sucesso!',
       embeds: [embed],
       components: [row],
-      ephemeral: true
+      files: [attachment]
     });
 
     startPaymentPolling(purchaseId, interaction);
@@ -263,8 +267,7 @@ async function handlePayButton(interaction, purchaseId) {
   } catch (error) {
     console.error('Erro ao gerar PIX:', error);
     await interaction.editReply({
-      content: `❌ Erro ao gerar pagamento PIX: ${error.message}`,
-      ephemeral: true
+      content: `❌ Erro ao gerar pagamento PIX: ${error.message}`
     });
   }
 }
@@ -295,7 +298,7 @@ async function handleCheckPayment(interaction, purchaseId) {
     });
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferUpdate();
 
   try {
     const paymentStatus = await mercadoPago.getPaymentStatus(purchase.paymentId);
@@ -304,20 +307,17 @@ async function handleCheckPayment(interaction, purchaseId) {
       await confirmPayment(interaction, purchase);
     } else if (mercadoPago.isPaymentPending(paymentStatus.status)) {
       await interaction.editReply({
-        content: '⏳ Pagamento ainda não foi confirmado. Aguarde alguns instantes e tente novamente.',
-        ephemeral: true
+        content: '⏳ Pagamento ainda não foi confirmado. Aguarde alguns instantes e tente novamente.'
       });
     } else {
       await interaction.editReply({
-        content: `❌ Status do pagamento: ${paymentStatus.status}. Entre em contato se houver algum problema.`,
-        ephemeral: true
+        content: `❌ Status do pagamento: ${paymentStatus.status}. Entre em contato se houver algum problema.`
       });
     }
   } catch (error) {
     console.error('Erro ao verificar pagamento:', error);
     await interaction.editReply({
-      content: '❌ Erro ao verificar status do pagamento. Tente novamente em alguns instantes.',
-      ephemeral: true
+      content: '❌ Erro ao verificar status do pagamento. Tente novamente em alguns instantes.'
     });
   }
 }
@@ -328,8 +328,7 @@ async function confirmPayment(interaction, purchase) {
 
   if (!bingo) {
     return interaction.editReply({
-      content: '❌ Bingo não encontrado!',
-      ephemeral: true
+      content: '❌ Bingo não encontrado!'
     });
   }
 
@@ -361,8 +360,7 @@ async function confirmPayment(interaction, purchase) {
   await interaction.editReply({
     content: null,
     embeds: [embed],
-    components: [],
-    ephemeral: true
+    components: []
   });
 
   try {
