@@ -4,7 +4,7 @@
     "guildId": "959830518885662780",
     "nome": "teste funny 1",
     "quantidade": 10,
-    "valor": 2,
+    "valor": 0.01,
     "cards": [
       {
         "number": 1,
@@ -416,7 +416,7 @@
           4,
           10
         ],
-        "totalPaid": 6,
+        "totalPaid": 0.03,
         "addedAt": "2025-10-27T03:54:47.343Z",
         "addedBy": "291974769858052096"
       }
