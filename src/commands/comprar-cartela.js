@@ -15,6 +15,20 @@ const mercadoPago = require('../services/mercadoPago');
 
 const pendingPurchases = new Map();
 
+// Função auxiliar para calcular cartelas disponíveis e ocupadas
+function getAvailableCards(bingo) {
+  const allCards = Array.from({ length: bingo.quantidade }, (_, i) => i + 1);
+  const takenCards = bingo.participants.flatMap(p => p.cards);
+  const availableCards = allCards.filter(card => !takenCards.includes(card));
+  
+  return {
+    available: availableCards,
+    taken: takenCards,
+    totalAvailable: availableCards.length,
+    totalTaken: takenCards.length
+  };
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('comprar-cartela')
@@ -34,23 +48,35 @@ module.exports = {
     }
 
     if (activeBingos.length === 1) {
-      await showPurchaseForm(interaction, activeBingos[0][0]);
+      // Se há apenas um bingo ativo, mostrar diretamente os detalhes
+      await showBingoDetails(interaction, activeBingos[0][0]);
     } else {
+      // Se há múltiplos bingos, mostrar menu de seleção
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId('select_bingo')
-        .setPlaceholder('Selecione o bingo')
+        .setPlaceholder('🎰 Escolha o bingo que deseja participar')
         .addOptions(
-          activeBingos.map(([id, bingo]) => ({
-            label: bingo.nome,
-            description: `R$ ${bingo.valor.toFixed(2)} por cartela - ${bingo.participants.length} participantes`,
-            value: id
-          }))
+          activeBingos.map(([id, bingo]) => {
+            const { totalAvailable, totalTaken } = getAvailableCards(bingo);
+            return {
+              label: bingo.nome,
+              description: `R$ ${bingo.valor.toFixed(2)} | ${totalAvailable} cartelas disponíveis | ${bingo.participants.length} participantes`,
+              value: id
+            };
+          })
         );
 
       const row = new ActionRowBuilder().addComponents(selectMenu);
 
+      const embed = new EmbedBuilder()
+        .setColor('#3498db')
+        .setTitle('🎰 Bingos Ativos')
+        .setDescription('Selecione o bingo que deseja participar abaixo:')
+        .setFooter({ text: 'Selecione um bingo no menu abaixo' })
+        .setTimestamp();
+
       await interaction.reply({
-        content: '🎰 Selecione o bingo que deseja participar:',
+        embeds: [embed],
         components: [row],
         ephemeral: true
       });
@@ -58,7 +84,95 @@ module.exports = {
   }
 };
 
-async function showPurchaseForm(interaction, bingoId) {
+async function showBingoDetails(interaction, bingoId) {
+  const bingos = getBingos();
+  const bingo = bingos[bingoId];
+
+  if (!bingo) {
+    const content = '❌ Bingo não encontrado!';
+    if (interaction.replied || interaction.deferred) {
+      return interaction.editReply({ content, embeds: [], components: [] });
+    }
+    return interaction.reply({ content, ephemeral: true });
+  }
+
+  const { available, totalAvailable, totalTaken } = getAvailableCards(bingo);
+
+  const embed = new EmbedBuilder()
+    .setColor('#f1c40f')
+    .setTitle(`🎰 ${bingo.nome}`)
+    .setDescription('Informações sobre o bingo e cartelas disponíveis:')
+    .addFields(
+      { name: '💰 Valor por Cartela', value: `R$ ${bingo.valor.toFixed(2)}`, inline: true },
+      { name: '🎫 Total de Cartelas', value: `${bingo.quantidade}`, inline: true },
+      { name: '👥 Participantes', value: `${bingo.participants.length}`, inline: true },
+      { name: '✅ Cartelas Disponíveis', value: `${totalAvailable}`, inline: true },
+      { name: '🔒 Cartelas Compradas', value: `${totalTaken}`, inline: true },
+      { name: '\u200b', value: '\u200b', inline: true }
+    );
+
+  if (totalAvailable === 0) {
+    embed.setColor('#e74c3c');
+    embed.addFields({
+      name: '❌ Esgotado',
+      value: 'Todas as cartelas deste bingo já foram vendidas!',
+      inline: false
+    });
+
+    if (interaction.replied || interaction.deferred) {
+      return interaction.editReply({ embeds: [embed], components: [] });
+    }
+    return interaction.reply({ embeds: [embed], components: [], ephemeral: true });
+  }
+
+  // Mostrar algumas cartelas disponíveis como exemplo
+  const exampleCards = available.slice(0, 20).join(', ');
+  const moreCards = available.length > 20 ? ` (e mais ${available.length - 20})` : '';
+  
+  embed.addFields({
+    name: '📋 Exemplos de Cartelas Disponíveis',
+    value: `${exampleCards}${moreCards}`,
+    inline: false
+  });
+
+  const purchaseButton = new ButtonBuilder()
+    .setCustomId(`show_purchase_modal:${bingoId}`)
+    .setLabel('🛒 Escolher cartelas disponíveis')
+    .setStyle(ButtonStyle.Success);
+
+  const row = new ActionRowBuilder().addComponents(purchaseButton);
+
+  if (interaction.replied || interaction.deferred) {
+    await interaction.editReply({
+      embeds: [embed],
+      components: [row]
+    });
+  } else {
+    await interaction.reply({
+      embeds: [embed],
+      components: [row],
+      ephemeral: true
+    });
+  }
+}
+
+async function showPurchaseModal(interaction, bingoId) {
+  const bingos = getBingos();
+  const bingo = bingos[bingoId];
+
+  if (!bingo) {
+    return interaction.reply({
+      content: '❌ Bingo não encontrado!',
+      ephemeral: true
+    });
+  }
+
+  const { available } = getAvailableCards(bingo);
+
+  // Preparar placeholder com cartelas disponíveis
+  const placeholderCards = available.slice(0, 15).join(', ');
+  const morePlaceholder = available.length > 15 ? '...' : '';
+
   const modal = new ModalBuilder()
     .setCustomId(`purchase_form:${bingoId}`)
     .setTitle('Comprar Cartelas de Bingo');
@@ -75,7 +189,7 @@ async function showPurchaseForm(interaction, bingoId) {
     .setCustomId('card_numbers')
     .setLabel('Números das cartelas (separados por vírgula)')
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder('Ex: 1,2,10')
+    .setPlaceholder(`Disponíveis: ${placeholderCards}${morePlaceholder}`)
     .setRequired(true)
     .setMaxLength(200);
 
@@ -83,10 +197,6 @@ async function showPurchaseForm(interaction, bingoId) {
   const secondRow = new ActionRowBuilder().addComponents(cardsInput);
 
   modal.addComponents(firstRow, secondRow);
-
-  if (interaction.replied || interaction.deferred) {
-    await interaction.followUp({ content: 'Aguarde...', ephemeral: true });
-  }
   
   await interaction.showModal(modal);
 }
@@ -133,8 +243,10 @@ async function handlePurchaseSubmit(interaction, bingoId) {
   const alreadyTaken = uniqueCards.filter(n => takenCards.includes(n));
 
   if (alreadyTaken.length > 0) {
+    const { available } = getAvailableCards(bingo);
+    const suggestionCards = available.slice(0, 10).join(', ');
     return interaction.editReply({
-      content: `❌ As seguintes cartelas já foram escolhidas: ${alreadyTaken.join(', ')}. Por favor, escolha outras.`,
+      content: `❌ As seguintes cartelas já foram escolhidas: ${alreadyTaken.join(', ')}.\n\n💡 **Cartelas disponíveis:** ${suggestionCards}...`,
       ephemeral: true
     });
   }
@@ -200,13 +312,14 @@ async function handlePayButton(interaction, purchaseId) {
   const purchase = pendingPurchases.get(purchaseId);
 
   if (!purchase) {
-    return interaction.reply({
-      content: '❌ Compra expirada ou inválida! Por favor, inicie o processo novamente.',
-      ephemeral: true
+    return interaction.update({
+      content: '❌ Compra expirada ou inválida! Por favor, inicie o processo novamente com `/comprar-cartela`.',
+      embeds: [],
+      components: []
     });
   }
 
-  await interaction.deferReply();
+  await interaction.deferUpdate();
 
   try {
     const bingos = getBingos();
@@ -245,7 +358,7 @@ async function handlePayButton(interaction, purchaseId) {
         { name: '📋 Código PIX (Copia e Cola)', value: `\`\`\`${payment.qrCode}\`\`\``, inline: false }
       )
       .setImage('attachment://qrcode.png')
-      .setFooter({ text: `ID do Pagamento: ${payment.id}` })
+      .setFooter({ text: `ID do Pagamento: ${payment.id} | Aguardando confirmação automática...` })
       .setTimestamp();
 
     const checkButton = new ButtonBuilder()
@@ -256,7 +369,7 @@ async function handlePayButton(interaction, purchaseId) {
     const row = new ActionRowBuilder().addComponents(checkButton);
 
     await interaction.editReply({
-      content: '✅ QR Code PIX gerado com sucesso!',
+      content: '✅ QR Code PIX gerado com sucesso! Pague para liberar suas cartelas.',
       embeds: [embed],
       components: [row],
       files: [attachment]
@@ -267,24 +380,25 @@ async function handlePayButton(interaction, purchaseId) {
   } catch (error) {
     console.error('Erro ao gerar PIX:', error);
     await interaction.editReply({
-      content: `❌ Erro ao gerar pagamento PIX: ${error.message}`
+      content: `❌ Erro ao gerar pagamento PIX: ${error.message}`,
+      embeds: [],
+      components: []
     });
   }
 }
 
 async function handleEditButton(interaction, purchaseId, bingoId) {
-  await showPurchaseForm(interaction, bingoId);
   pendingPurchases.delete(purchaseId);
+  await showPurchaseModal(interaction, bingoId);
 }
 
 async function handleCancelButton(interaction, purchaseId) {
   pendingPurchases.delete(purchaseId);
   
   await interaction.update({
-    content: '❌ Compra cancelada com sucesso.',
+    content: '❌ Compra cancelada com sucesso. Use `/comprar-cartela` para iniciar novamente.',
     embeds: [],
-    components: [],
-    ephemeral: true
+    components: []
   });
 }
 
@@ -292,9 +406,10 @@ async function handleCheckPayment(interaction, purchaseId) {
   const purchase = pendingPurchases.get(purchaseId);
 
   if (!purchase || !purchase.paymentId) {
-    return interaction.reply({
-      content: '❌ Pagamento não encontrado!',
-      ephemeral: true
+    return interaction.update({
+      content: '❌ Pagamento não encontrado! Use `/comprar-cartela` para iniciar novamente.',
+      embeds: [],
+      components: []
     });
   }
 
@@ -328,7 +443,9 @@ async function confirmPayment(interaction, purchase) {
 
   if (!bingo) {
     return interaction.editReply({
-      content: '❌ Bingo não encontrado!'
+      content: '❌ Bingo não encontrado!',
+      embeds: [],
+      components: []
     });
   }
 
@@ -351,6 +468,7 @@ async function confirmPayment(interaction, purchase) {
     .setTitle('✅ Pagamento Confirmado!')
     .setDescription('Suas cartelas foram adicionadas com sucesso!')
     .addFields(
+      { name: '🎰 Bingo', value: bingo.nome, inline: false },
       { name: '🎫 Cartelas Adquiridas', value: purchase.cardNumbers.join(', '), inline: false },
       { name: '📋 Como Visualizar', value: `Use \`/visualizar-cartela numero:[NÚMERO]\` para ver cada cartela.\n\nExemplo: \`/visualizar-cartela numero:${purchase.cardNumbers[0]}\``, inline: false }
     )
@@ -360,7 +478,8 @@ async function confirmPayment(interaction, purchase) {
   await interaction.editReply({
     content: null,
     embeds: [embed],
-    components: []
+    components: [],
+    files: []
   });
 
   try {
@@ -400,18 +519,29 @@ function startPaymentPolling(purchaseId, interaction) {
 }
 
 module.exports.handleInteraction = async function(interaction) {
+  // Seleção de bingo
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_bingo') {
     const bingoId = interaction.values[0];
-    await showPurchaseForm(interaction, bingoId);
+    await interaction.deferUpdate();
+    await showBingoDetails(interaction, bingoId);
     return;
   }
 
+  // Botão para abrir modal de compra
+  if (interaction.isButton() && interaction.customId.startsWith('show_purchase_modal:')) {
+    const bingoId = interaction.customId.split(':')[1];
+    await showPurchaseModal(interaction, bingoId);
+    return;
+  }
+
+  // Submissão do modal
   if (interaction.isModalSubmit() && interaction.customId.startsWith('purchase_form:')) {
     const bingoId = interaction.customId.split(':')[1];
     await handlePurchaseSubmit(interaction, bingoId);
     return;
   }
 
+  // Botões de ação
   if (interaction.isButton()) {
     const [action, ...params] = interaction.customId.split(':');
 

@@ -59,6 +59,18 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  const finalizarBingoCommand = client.commands.get('finalizar-bingo');
+  if (finalizarBingoCommand && finalizarBingoCommand.handleInteraction) {
+    if (interaction.isStringSelectMenu() || interaction.isButton()) {
+      try {
+        await finalizarBingoCommand.handleInteraction(interaction);
+        return;
+      } catch (error) {
+        console.error('Erro ao processar interação de finalizar-bingo:', error);
+      }
+    }
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);

@@ -431,6 +431,19 @@
         "addedBy": "compra_automatica",
         "paymentId": 130876511127,
         "paymentMethod": "pix"
+      },
+      {
+        "nome": "João Silva",
+        "userId": "291974769858052096",
+        "cards": [
+          8,
+          9
+        ],
+        "totalPaid": 0.02,
+        "addedAt": "2025-10-28T05:17:45.217Z",
+        "addedBy": "compra_automatica",
+        "paymentId": 131544619264,
+        "paymentMethod": "pix"
       }
     ],
     "drawnNumbers": [],
