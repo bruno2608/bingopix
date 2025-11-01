@@ -255,6 +255,7 @@ async function handlePurchaseSubmit(interaction, bingoId) {
 
   const purchaseId = `${interaction.user.id}-${Date.now()}`;
   pendingPurchases.set(purchaseId, {
+    purchaseId,
     bingoId,
     playerName,
     cardNumbers: uniqueCards,
@@ -419,7 +420,7 @@ async function handleCheckPayment(interaction, purchaseId) {
     const paymentStatus = await mercadoPago.getPaymentStatus(purchase.paymentId);
 
     if (mercadoPago.isPaymentApproved(paymentStatus.status)) {
-      await confirmPayment(interaction, purchase);
+      await confirmPayment(interaction, purchaseId);
     } else if (mercadoPago.isPaymentPending(paymentStatus.status)) {
       await interaction.editReply({
         content: '⏳ Pagamento ainda não foi confirmado. Aguarde alguns instantes e tente novamente.'
@@ -437,7 +438,17 @@ async function handleCheckPayment(interaction, purchaseId) {
   }
 }
 
-async function confirmPayment(interaction, purchase) {
+async function confirmPayment(interaction, purchaseId) {
+  const purchase = pendingPurchases.get(purchaseId);
+
+  if (!purchase) {
+    return interaction.editReply({
+      content: '❌ Pagamento não encontrado ou já foi confirmado.',
+      embeds: [],
+      components: []
+    });
+  }
+
   const bingos = getBingos();
   const bingo = bingos[purchase.bingoId];
 
@@ -461,7 +472,7 @@ async function confirmPayment(interaction, purchase) {
   });
 
   saveBingos(bingos);
-  pendingPurchases.delete(`${purchase.userId}-${purchase.createdAt}`);
+  pendingPurchases.delete(purchaseId);
 
   const embed = new EmbedBuilder()
     .setColor('#00FF00')
@@ -508,7 +519,7 @@ function startPaymentPolling(purchaseId, interaction) {
 
       if (mercadoPago.isPaymentApproved(paymentStatus.status)) {
         clearInterval(interval);
-        await confirmPayment(interaction, purchase);
+        await confirmPayment(interaction, purchaseId);
       } else if (mercadoPago.isPaymentRejected(paymentStatus.status)) {
         clearInterval(interval);
       }
